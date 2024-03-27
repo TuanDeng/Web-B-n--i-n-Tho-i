@@ -23,7 +23,6 @@ function nguoidung() {
         addAlertBox('Số điện thoại không phù hợp.', '#f55', '#000', 3000);
         return false;
     }
-
     addAlertBox('Gửi thành công. Chúng tôi chân thành cám ơn những góp ý từ bạn.', '#5f5', '#000', 5000); // cám ơn
     // document.formlh.reset(); // làm sạch
     return false; // thoát

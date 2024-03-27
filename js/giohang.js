@@ -107,29 +107,58 @@ function xoaSanPhamTrongGioHang(i) {
 	}
 }
 
-function thanhToan() {
-	var c_user = getCurrentUser();
-	if(c_user.off) {
-        alert('Tài khoản của bạn hiện đang bị khóa nên không thể mua hàng!');
-        addAlertBox('Tài khoản của bạn đã bị khóa bởi Admin.', '#aa0000', '#fff', 10000);
-        return;
-	}
-	
-	if (!currentuser.products.length) {
-		addAlertBox('Không có mặt hàng nào cần thanh toán !!', '#ffb400', '#fff', 2000);
-		return;
-	}
-	if (window.confirm('Thanh toán giỏ hàng ?')) {
-		currentuser.donhang.push({
-			"sp": currentuser.products,
-			"ngaymua": new Date(),
-			"tinhTrang": 'Đang chờ xử lý'
-		});
-		currentuser.products = [];
-		capNhatMoiThu();
-		addAlertBox('Các sản phẩm đã được gửi vào đơn hàng và chờ xử lý.', '#17c671', '#fff', 4000);
-	}
+
+
+// Định nghĩa lớp Command cho thanh toán
+class ThanhToanCommand {
+    constructor(strategy) {
+        this.strategy = strategy;
+    }
+    execute() {
+        this.strategy();
+    }
 }
+// Các hàm thực thi chiến lược thanh toán
+function normalPaymentStrategy() {
+    currentuser.donhang.push({
+        "sp": currentuser.products,
+        "ngaymua": new Date(),
+        "tinhTrang": 'Đang chờ xử lý'
+    });
+    currentuser.products = [];
+    capNhatMoiThu();
+    addAlertBox('Các sản phẩm đã được gửi vào đơn hàng và chờ xử lý.', '#17c671', '#fff', 4000);
+}
+
+function withAlertPaymentStrategy() {
+    alert('Tài khoản của bạn hiện đang bị khóa nên không thể mua hàng!');
+    addAlertBox('Tài khoản của bạn đã bị khóa bởi Admin.', '#aa0000', '#fff', 10000);
+}
+
+function emptyCartPaymentStrategy() {
+    addAlertBox('Không có mặt hàng nào cần thanh toán !!', '#ffb400', '#fff', 2000);
+}
+// Hàm thanh toán sử dụng Command Pattern
+function thanhToan() {
+    var c_user = getCurrentUser();
+    if (c_user.off) {
+        var command = new ThanhToanCommand(withAlertPaymentStrategy);
+        command.execute();
+        return;
+    }
+
+    if (!currentuser.products.length) {
+        var command = new ThanhToanCommand(emptyCartPaymentStrategy);
+        command.execute();
+        return;
+    }
+
+    if (window.confirm('Thanh toán giỏ hàng ?')) {
+        var command = new ThanhToanCommand(normalPaymentStrategy);
+        command.execute();
+    }
+}
+thanhToan();
 
 function xoaHet() {
 	if (currentuser.products.length) {
@@ -191,3 +220,7 @@ function capNhatMoiThu() { // Mọi thứ
 	// Cập nhật trên header
 	capNhat_ThongTin_CurrentUser();
 }
+
+
+
+
