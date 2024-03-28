@@ -27,8 +27,101 @@ function khoiTao() {
 
 // ========= Các hàm liên quan tới danh sách sản phẩm =========
 // Localstorage cho dssp: 'ListProducts
+// function setListProducts(newList) {
+//     window.localStorage.setItem('ListProducts', JSON.stringify(newList));
+// }
+
+// function getListProducts() {
+//     return JSON.parse(window.localStorage.getItem('ListProducts'));
+// }
+
+// function timKiemTheoTen(list, ten, soluong) {
+//     var tempList = copyObject(list);
+//     var result = [];
+//     ten = ten.split(' ');
+
+//     for (var sp of tempList) {
+//         var correct = true;
+//         for (var t of ten) {
+//             if (sp.name.toUpperCase().indexOf(t.toUpperCase()) < 0) {
+//                 correct = false;
+//                 break;
+//             }
+//         }
+//         if (correct) {
+//             result.push(sp);
+//         }
+//     }
+
+//     return result;
+// }
+
+// function timKiemTheoMa(list, ma) {
+//     for (var l of list) {
+//         if (l.masp == ma) return l;
+//     }
+// }
+
+// // copy 1 object, do trong js ko có tham biến , tham trị rõ ràng
+// // nên dùng bản copy để chắc chắn ko ảnh hưởng tới bản chính
+// function copyObject(o) {
+//     return JSON.parse(JSON.stringify(o));
+// }
+
+
+//Mẫu Observer Pattern cho phần tìm kiếm sp
+
+
+class SearchFunction {
+    constructor() {
+        this.observers = [];
+    }
+
+    subscribe(observer) {
+        this.observers.push(observer);
+    }
+
+    unsubscribe(observer) {
+        this.observers = this.observers.filter(subscriber => subscriber !== observer);
+    }
+
+    notify(newList) {
+        this.observers.forEach(observer => observer.update(newList));
+    }
+}
+
+class ProductList {
+    constructor() {
+        this.list = [];
+    }
+
+    update(newList) {
+        this.list = newList;
+        this.render();
+    }
+
+    render() {
+        
+        const productListElement = document.getElementById('productList');
+        productListElement.innerHTML = '';
+
+        this.list.forEach(product => {
+            const productElement = document.createElement('div');
+            productElement.innerText = `Name: ${product.name}, Code: ${product.masp}`;
+            productListElement.appendChild(productElement);
+        });
+    }
+}
+
+
+const searchFunction = new SearchFunction();
+
+const productList = new ProductList();
+searchFunction.subscribe(productList);
+
 function setListProducts(newList) {
     window.localStorage.setItem('ListProducts', JSON.stringify(newList));
+    searchFunction.notify(newList); // Thông báo cho tất cả các observers khi danh sách sản phẩm được cập nhật
 }
 
 function getListProducts() {
@@ -67,6 +160,14 @@ function timKiemTheoMa(list, ma) {
 function copyObject(o) {
     return JSON.parse(JSON.stringify(o));
 }
+
+//Hết mẫu Observer Pattern
+
+
+
+
+
+
 
 // ============== ALert Box ===============
 // div có id alert được tạo trong hàm addFooter
@@ -160,7 +261,7 @@ function setCurrentUser(u) {
 
 // Hàm get set cho danh sách người dùng
 function getListUser() {
-    var data = JSON.parse(window.localStorage.getItem('ListUser')) || []
+    var data = JSON.parse(window.localStorage.getItem('ListUser')) || [];
     var l = [];
     for (var d of data) {
         l.push(d);
@@ -184,58 +285,125 @@ function updateListUser(u, newData) {
 }
 
 function logIn(form) {
-    // Lấy dữ liệu từ form
-    var name = form.username.value;
-    var pass = form.pass.value;
-    var newUser = new User(name, pass);
+    const username = form.username.value;
+    const password = form.pass.value;
 
-    // Kiểm tra trường tên đăng nhập
-    if (name === '') {
-        alert('Vui lòng nhập Tài khoản.');
-        return false;
-    }
+    // Sử dụng Facade để thực hiện đăng nhập
+    return AuthFacade.login(username, password);
+}
+// facade
+class AuthFacade {
+    static login(username, password) {
+        // Kiểm tra trường tên đăng nhập và mật khẩu
+        if (username === '') {
+            alert('Vui lòng nhập Tài khoản.');
+            return false;
+        }
+        if (password === '') {
+            alert('Vui lòng nhập mật khẩu.');
+            return false;
+        }
 
-    // Kiểm tra trường mật khẩu
-    if (pass === '') {
-        alert('Vui lòng nhập mật khẩu.');
-        return false;
-    }
-
-    // Lấy dữ liệu từ danh sách người dùng localstorage
-    var listUser = getListUser();
-
-    // Kiểm tra xem dữ liệu form có khớp với người dùng nào trong danh sách ko
-    for (var u of listUser) {
-        if (equalUser(newUser, u)) {
-            if(u.off) {
-                alert('Tài khoản này đang bị khoá. Không thể đăng nhập.');
-                return false;
-            }
-
-            setCurrentUser(u);
-
-            // Reload lại trang -> sau khi reload sẽ cập nhật luôn giỏ hàng khi hàm setupEventTaiKhoan chạy
-            location.reload();
+        // Thực hiện đăng nhập bằng cách gọi từ UserAuthenticator
+        const loggedIn = UserAuthenticator.login(username, password);
+        if (loggedIn) {
+            return true;
+        } else {
+            alert('Nhập sai tên hoặc mật khẩu !!!');
             return false;
         }
     }
-
-    // Đăng nhập vào admin
-    for (var ad of adminInfo) {
-        if (equalUser(newUser, ad)) {
-            alert('Xin chào admin .. ');
-            window.localStorage.setItem('admin', true);
-            window.location.assign('admin.html');
-            return false;
-        }
-    }
-
-    // Trả về thông báo nếu không khớp
-    alert('Nhập sai tên hoặc mật khẩu !!!');
-    form.username.focus();
-    return false;
 }
 
+
+// Subsystem - UserAuthenticator
+class UserAuthenticator {
+    static login(username, password) {
+        const newUser = new User(username, password);
+        const listUser = getListUser();
+        for (let u of listUser) {
+            if (equalUser(newUser, u)) {
+                if (u.off) {
+                    alert('Tài khoản này đang bị khoá. Không thể đăng nhập.');
+                    return false;
+                }
+                setCurrentUser(u);
+                location.reload();
+                return true;
+            }
+        }
+        const adminInfo = getAdminInfo();
+        for (let ad of adminInfo) {
+            if (equalUser(newUser, ad)) {
+                alert('Xin chào admin .. ');
+                window.localStorage.setItem('admin', true);
+                window.location.assign('admin.html');
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+// Đăng ký
+// Implementor interface
+class UserRegistration {
+    signUp(newUser) {}
+}
+
+// Concrete Implementor
+class DefaultUserRegistration extends UserRegistration {
+    signUp(newUser) {
+        // Lấy dữ liệu các khách hàng hiện có
+        var listUser = getListUser();
+
+        // Kiểm tra trùng admin
+        for (var ad of adminInfo) {
+            if (newUser.username == ad.username) {
+                alert('Tên đăng nhập đã có người sử dụng !!');
+                return false;
+            }
+        }
+
+        // Kiểm tra xem dữ liệu form có trùng với khách hàng đã có không
+        for (var u of listUser) {
+            if (newUser.username == u.username) {
+                alert('Tên đăng nhập đã có người sử dụng !!');
+                return false;
+            }
+        }
+        for (var v of listUser) {
+            if (newUser.email == v.email) {
+                alert('Địa chỉ email đã được sử dụng để đăng ký tài khoản khác. Vui lòng sử dụng một địa chỉ email khác.');
+                return false;
+            }
+        }
+
+        // Lưu người mới vào localstorage
+        listUser.push(newUser);
+        window.localStorage.setItem('ListUser', JSON.stringify(listUser));
+
+        // Đăng nhập vào tài khoản mới tạo
+        window.localStorage.setItem('CurrentUser', JSON.stringify(newUser));
+        alert('Đăng kí thành công, Bạn sẽ được tự động đăng nhập!');
+        location.reload();
+
+        return true;
+    }
+}
+
+// Abstraction
+class UserRegistrationBridge {
+    constructor(userRegistration) {
+        this.userRegistration = userRegistration;
+    }
+
+    signUp(newUser) {
+        return this.userRegistration.signUp(newUser);
+    }
+}
+
+// Usage
 function signUp(form) {
     var ho = form.ho.value;
     var ten = form.ten.value;
@@ -254,43 +422,12 @@ function signUp(form) {
         alert('Vui lòng nhập địa chỉ email hợp lệ theo mẫu ......@gmail.com');
         return false;
     }
+
     var newUser = new User(username, pass, ho, ten, email);
+    var defaultUserRegistration = new DefaultUserRegistration();
+    var userRegistrationBridge = new UserRegistrationBridge(defaultUserRegistration);
 
-    // Lấy dữ liệu các khách hàng hiện có
-    var listUser = getListUser();
-
-    // Kiểm tra trùng admin
-    for (var ad of adminInfo) {
-        if (newUser.username == ad.username) {
-            alert('Tên đăng nhập đã có người sử dụng !!');
-            return false;
-        }
-    }
-
-    // Kiểm tra xem dữ liệu form có trùng với khách hàng đã có không
-    for (var u of listUser) {
-        if (newUser.username == u.username) {
-            alert('Tên đăng nhập đã có người sử dụng !!');
-            return false;
-        }
-    }
-    for (var v of listUser) {
-        if (newUser.email == v.email) {
-            alert('Địa chỉ email đã được sử dụng để đăng ký tài khoản khác. Vui lòng sử dụng một địa chỉ email khác.');
-            return false;
-        }
-    }
-
-    // Lưu người mới vào localstorage
-    listUser.push(newUser);
-    window.localStorage.setItem('ListUser', JSON.stringify(listUser));
-
-    // Đăng nhập vào tài khoản mới tạo
-    window.localStorage.setItem('CurrentUser', JSON.stringify(newUser));
-    alert('Đăng kí thành công, Bạn sẽ được tự động đăng nhập!');
-    location.reload();
-
-    return false;
+    return userRegistrationBridge.signUp(newUser);
 }
 
 function logOut() {
@@ -644,15 +781,17 @@ function addFooter() {
 }
 
 // Thêm contain Taikhoan
+
+
 function addContainTaiKhoan() {
     document.write(`
-	<div class="containTaikhoan">
+    <div class="containTaikhoan">
         <span class="close" onclick="showTaiKhoan(false);">&times;</span>
         <div class="taikhoan">
 
             <ul class="tab-group">
-                <li class="tab active"><a href="#login">Đăng nhập</a></li>
-                <li class="tab"><a href="#signup">Đăng kí</a></li>
+                <li class="tab active"><a href="#login" onclick="showLoginForm();">Đăng nhập</a></li>
+                <li class="tab"><a href="#signup" onclick="showSignupForm();">Đăng kí</a></li>
             </ul> <!-- /tab group -->
 
             <div class="tab-content">
@@ -675,15 +814,15 @@ function addContainTaiKhoan() {
                             <input name="pass" type="password" autocomplete="off" />
                         </div> <!-- pass -->
 
-                        <p class="forgot"><a href="#">Quên mật khẩu?</a></p>
+                        <p class="forgot"><a href="#" onclick="showForgotPasswordForm();">Quên mật khẩu?</a></p>
 
-                        <button type="submit" class="button button-block" />Tiếp tục</button>
+                        <button type="submit" class="button button-block">Tiếp tục</button>
 
                     </form> <!-- /form -->
 
                 </div> <!-- /log in -->
 
-                <div id="signup">
+                <div id="signup" style="display:none;">
                     <h1>Đăng kí miễn phí</h1>
 
                     <form onsubmit="return signUp(this);">
@@ -725,16 +864,174 @@ function addContainTaiKhoan() {
                             <input name="newPass" type="password" autocomplete="off" />
                         </div> <!-- /pass -->
 
-                        <button type="submit" class="button button-block" />Tạo tài khoản</button>
+                        <button type="submit" class="button button-block">Tạo tài khoản</button>
 
                     </form> <!-- /form -->
 
                 </div> <!-- /sign up -->
+                
+                <div id="forgotPassword" style="display:none;">
+                    <h1>Quên mật khẩu</h1>
+
+                    <form onsubmit="return sendResetLink();">
+
+                        <div class="field-wrap">
+                            <label>
+                                Địa chỉ Email<span class="req">*</span>
+                            </label>
+                            
+                            <input name="forgotEmail" type="email"  autocomplete="off" />
+                        </div> <!-- /email -->
+
+                        <div class="field-wrap">
+                            <label>
+                                Tên đăng nhập<span class="req">*</span>
+                            </label>
+                            
+                            <input name="forgotUsername" type="text"  autocomplete="off" />
+                        </div> <!-- /user name -->
+
+                        <button type="button" class="button button-block" onclick="sendResetLink();">Yêu cầu</button>
+
+                        
+
+                    </form> <!-- /form -->
+
+                </div> <!-- /forgot password -->
+                <div id="resetPassword" style="display:none;">
+                        <h1>Nhập lại mật khẩu mới</h1>
+
+                        <form onsubmit="return resetPassword();">
+
+                            <div class="field-wrap">
+                                <label>
+                                    Mật khẩu mới<span class="req">*</span>
+                                </label>
+                                <input id="newPassword" type="password" autocomplete="off" />
+                            </div> <!-- /password -->
+
+                            <div class="field-wrap">
+                                <label>
+                                    Xác nhận mật khẩu<span class="req">*</span>
+                                </label>
+                                <input id="confirmPassword" type="password" autocomplete="off" />
+                            </div> <!-- /confirm password -->
+                            <p class="forgot"><a href="#" onclick="showLoginForm();">Quay lại trang đăng nhập</a></p>
+                            <button type="submit" class="button button-block">Cập nhật mật khẩu</button>
+                            
+                        </form> <!-- /form -->
+                    </div> <!-- /reset password -->
+                    
             </div><!-- tab-content -->
 
         </div> <!-- /taikhoan -->
     </div>`);
+    
 }
+function sendResetLink() {
+    let listUser = getListUser();
+
+    console.log(listUser); 
+    let emailElement = document.getElementById("forgotEmail");
+    let usernameElement = document.getElementById("forgotUsername");
+    
+
+    if (!emailElement || !usernameElement) {
+        alert("Có lỗi xảy ra khi truy cập thông tin. Vui lòng thử lại.");
+        return false;
+    }
+
+    let email = emailElement.value;
+    let username = usernameElement.value;
+
+    let user = listUser.find(u => u.email === email && u.username === username);
+
+    if (user) {
+        // Lưu email và username vào localStorage để sử dụng trong form cập nhật mật khẩu
+        localStorage.setItem('resetEmail', email);
+        localStorage.setItem('resetUsername', username);
+
+        // Chuyển sang form cập nhật mật khẩu
+        document.getElementById("login").style.display = "none";
+        document.getElementById("signup").style.display = "none";
+        document.getElementById("forgotPassword").style.display = "none";
+        document.getElementById("resetPassword").style.display = "block";
+        
+        return false;
+    } else {
+        alert("Bạn đã nhập sai email hoặc tài khoản.");
+        return false;
+    }
+}
+
+
+function resetPassword() {
+    let newPassword = document.getElementById("newPassword").value;
+    let confirmPassword = document.getElementById("confirmPassword").value;
+    
+    if (newPassword !== confirmPassword) {
+        alert("Mật khẩu xác nhận không khớp. Vui lòng nhập lại.");
+        return false;
+    }
+
+    let email = localStorage.getItem('resetEmail');
+    let username = localStorage.getItem('resetUsername');
+
+    let listUser = getListUser();
+    let user = listUser.find(u => u.email === email && u.username === username);
+
+    if (user) {
+        user.password = newPassword;
+        window.localStorage.setItem('ListUser', JSON.stringify(listUser));
+        alert("Mật khẩu đã được cập nhật thành công.");
+        location.reload();
+    } else {
+        alert("Có lỗi xảy ra. Vui lòng thử lại sau.");
+        return false;
+    }
+}
+
+
+
+
+function showLoginForm() {
+    document.getElementById("login").style.display = "block";
+    document.getElementById("signup").style.display = "none";
+    document.getElementById("forgotPassword").style.display = "none";
+    document.getElementById("resetPassword").style.display = "none";
+}
+
+function showSignupForm() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("signup").style.display = "block";
+    document.getElementById("forgotPassword").style.display = "none";
+    document.getElementById("resetPassword").style.display = "none";
+}
+
+function showForgotPasswordForm() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("signup").style.display = "none";
+    document.getElementById("forgotPassword").style.display = "block";
+    document.getElementById("resetPassword").style.display = "none";
+}
+
+
+function showResetPasswordForm() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("signup").style.display = "none";
+    document.getElementById("forgotPassword").style.display = "none";
+    document.getElementById("resetPassword").style.display = "block";
+}
+
+
+
+
+
+
+
+
+
+
 // Thêm plc (phần giới thiệu trước footer)
 function addPlc() {
     document.write(`

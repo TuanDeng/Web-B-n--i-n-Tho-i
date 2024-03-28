@@ -2,6 +2,50 @@ var nameProduct, maProduct, sanPhamHienTai; // Tên sản phẩm trong trang nà
 // là biến toàn cục để có thể dùng ở bát cứ đâu trong trang
 // không cần tính toán lấy tên từ url nhiều lần
 
+
+// Singleton Pattern for Product List Management
+var ProductListManager = (function () {
+    let instance;
+    let productList = [];
+
+    function createInstance() {
+        // Initialize product list
+        return {
+            addProduct: function (product) {
+                productList.push(product);
+            },
+            getProductByName: function (productName) {
+                return productList.find(product => product.name === productName);
+            },
+            getProductByCode: function (productCode) {
+                return productList.find(product => product.masp === productCode);
+            },
+            getAllProducts: function () {
+                return productList;
+            },
+            filterProducts: function (criteriaFunction) {
+                return productList.filter(criteriaFunction);
+            }
+        };
+    }
+
+    return {
+        getInstance: function () {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        }
+    };
+})();
+
+// Global instance of ProductListManager
+const productListManager = ProductListManager.getInstance();
+
+
+// Singleton Pattern
+
+
 window.onload = function () {
     khoiTao();
 
@@ -12,11 +56,30 @@ window.onload = function () {
     phanTich_URL_chiTietSanPham();
 
     // autocomplete cho khung tim kiem
-    autocomplete(document.getElementById('search-box'), list_products);
+    //autocomplete(document.getElementById('search-box'), list_products);
+
+    autocomplete(document.getElementById('search-box'), productListManager.getAllProducts());
+
 
     // Thêm gợi ý sản phẩm
     sanPhamHienTai && suggestion();
 }
+
+
+
+// Singleton Pattern
+
+function khoiTao() {
+    // Assume list_products is an array of products
+    for (var p of list_products) {
+        productListManager.addProduct(p);
+    }
+}
+
+// Singleton Pattern
+
+
+
 
 function khongTimThaySanPham() {
     document.getElementById('productNotFound').style.display = 'block';
@@ -31,15 +94,22 @@ function phanTich_URL_chiTietSanPham() {
     // code này làm ngược lại so với lúc tạo href cho sản phẩm trong file classes.js
     nameProduct = nameProduct.split('-').join(' ');
 
-    for(var p of list_products) {
-        if(nameProduct == p.name) {
-            maProduct = p.masp;
-            break;
-        }
-    }
+    // for(var p of list_products) {
+    //     if(nameProduct == p.name) {
+    //         maProduct = p.masp;
+    //         break;
+    //     }
+    // }
 
-    sanPhamHienTai = timKiemTheoMa(list_products, maProduct);
-    if(!sanPhamHienTai) return khongTimThaySanPham();
+    // sanPhamHienTai = timKiemTheoMa(list_products, maProduct);
+    // if(!sanPhamHienTai) return khongTimThaySanPham();
+
+// Singleton Pattern
+    sanPhamHienTai = productListManager.getProductByName(nameProduct);
+    if (!sanPhamHienTai) return khongTimThaySanPham();
+
+
+// Singleton Pattern
 
     var divChiTiet = document.getElementsByClassName('chitietSanpham')[0];
 

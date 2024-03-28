@@ -230,7 +230,6 @@ function timKiemSanPham(inp) {
     }
 }
 
-
 // Thêm
 let previewSrc; // biến toàn cục lưu file ảnh đang thêm
 function layThongTinSanPhamTuTable(id) {

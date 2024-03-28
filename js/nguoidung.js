@@ -151,62 +151,142 @@ function changePass() {
     openChangePass();
 }
 
-function changeInfo(iTag, info) {
-    var inp = iTag.parentElement.previousElementSibling.getElementsByTagName('input')[0];
+// function changeInfo(iTag, info) {
+//     var inp = iTag.parentElement.previousElementSibling.getElementsByTagName('input')[0];
 
-    // Đang hiện
-    if (!inp.readOnly && inp.value != '') {
+//     // Đang hiện
+//     if (!inp.readOnly && inp.value != '') {
 
-        if (info == 'username') {
-            var users = getListUser();
-            for (var u of users) {
-                if (u.username == inp.value && u.username != currentUser.username) {
-                    alert('Tên đã có người sử dụng !!');
-                    inp.value = currentUser.username;
-                    return;
-                }
-            }
-            // Đổi tên trong list đơn hàng
-            if (!currentUser.donhang.length) {
-                document.getElementsByClassName('listDonHang')[0].innerHTML = `
-                    <h3 style="width=100%; padding: 50px; color: green; font-size: 2em; text-align: center"> 
-                        Xin chào ` + inp.value + `. Bạn chưa có đơn hàng nào.
-                    </h3>`;
-            }
+//         if (info == 'username') {
+//             var users = getListUser();
+//             for (var u of users) {
+//                 if (u.username == inp.value && u.username != currentUser.username) {
+//                     alert('Tên đã có người sử dụng !!');
+//                     inp.value = currentUser.username;
+//                     return;
+//                 }
+//             }
+//             // Đổi tên trong list đơn hàng
+//             if (!currentUser.donhang.length) {
+//                 document.getElementsByClassName('listDonHang')[0].innerHTML = `
+//                     <h3 style="width=100%; padding: 50px; color: green; font-size: 2em; text-align: center"> 
+//                         Xin chào ` + inp.value + `. Bạn chưa có đơn hàng nào.
+//                     </h3>`;
+//             }
 
 
-        } else if (info == 'email') {
-            var users = getListUser();
-            for (var u of users) {
-                if (u.email == inp.value && u.username != currentUser.username) {
-                    alert('Email đã có người sử dụng !!');
-                    inp.value = currentUser.email;
-                    return;
-                }
-            }
-        }
+//         } else if (info == 'email') {
+//             var users = getListUser();
+//             for (var u of users) {
+//                 if (u.email == inp.value && u.username != currentUser.username) {
+//                     alert('Email đã có người sử dụng !!');
+//                     inp.value = currentUser.email;
+//                     return;
+//                 }
+//             }
+//         }
 
-        var temp = copyObject(currentUser);
-        currentUser[info] = inp.value;
+//         var temp = copyObject(currentUser);
+//         currentUser[info] = inp.value;
 
-        // cập nhật danh sách sản phẩm trong localstorage
-        setCurrentUser(currentUser);
-        updateListUser(temp, currentUser);
+//         // cập nhật danh sách sản phẩm trong localstorage
+//         setCurrentUser(currentUser);
+//         updateListUser(temp, currentUser);
 
-        // Cập nhật trên header
-        capNhat_ThongTin_CurrentUser();
+//         // Cập nhật trên header
+//         capNhat_ThongTin_CurrentUser();
 
-        iTag.innerHTML = '';
+//         iTag.innerHTML = '';
 
-    } else {
-        iTag.innerHTML = 'Đồng ý';
-        inp.focus();
-        var v = inp.value;
-        inp.value = '';
-        inp.value = v;
+//     } else {
+//         iTag.innerHTML = 'Đồng ý';
+//         inp.focus();
+//         var v = inp.value;
+//         inp.value = '';
+//         inp.value = v;
+//     }
+
+//     inp.readOnly = !inp.readOnly;
+// }
+
+
+// Command Pattern
+
+// Command: Interface đại diện cho các hành động cụ thể
+class ChangeInfoCommand {
+    constructor(iTag, info) {
+        this.iTag = iTag;
+        this.info = info;
+        this.inp = iTag.parentElement.previousElementSibling.getElementsByTagName('input')[0];
+        this.previousValue = this.inp.value;
     }
 
-    inp.readOnly = !inp.readOnly;
+    execute() {
+        if (!this.inp.readOnly && this.inp.value != '') {
+            if (this.info === 'username') {
+                // Kiểm tra tên người dùng
+                const users = getListUser();
+                for (const u of users) {
+                    if (u.username === this.inp.value && u.username !== currentUser.username) {
+                        alert('Tên đã có người sử dụng !!');
+                        this.inp.value = currentUser.username;
+                        return;
+                    }
+                }
+                // Đổi tên trong list đơn hàng
+                if (!currentUser.donhang.length) {
+                    document.getElementsByClassName('listDonHang')[0].innerHTML = `
+                        <h3 style="width=100%; padding: 50px; color: green; font-size: 2em; text-align: center"> 
+                            Xin chào ${this.inp.value}. Bạn chưa có đơn hàng nào.
+                        </h3>`;
+                }
+            } else if (this.info === 'email') {
+                // Kiểm tra email người dùng
+                const users = getListUser();
+                for (const u of users) {
+                    if (u.email === this.inp.value && u.username !== currentUser.username) {
+                        alert('Email đã có người sử dụng !!');
+                        this.inp.value = currentUser.email;
+                        return;
+                    }
+                }
+            }
+
+            const temp = copyObject(currentUser);
+            currentUser[this.info] = this.inp.value;
+
+            // Cập nhật danh sách sản phẩm trong local storage
+            setCurrentUser(currentUser);
+            updateListUser(temp, currentUser);
+
+            // Cập nhật trên header
+            capNhat_ThongTin_CurrentUser();
+
+            this.iTag.innerHTML = '';
+        } else {
+            this.iTag.innerHTML = 'Đồng ý';
+            this.inp.focus();
+            const v = this.inp.value;
+            this.inp.value = '';
+            this.inp.value = v;
+        }
+
+        this.inp.readOnly = !this.inp.readOnly;
+    }
+
+    undo() {
+        this.inp.value = this.previousValue;
+        this.inp.readOnly = !this.inp.readOnly;
+        this.iTag.innerHTML = 'Đồng ý';
+    }
+}
+
+// Client: Sử dụng Command để thực hiện các hành động cụ thể
+function changeInfo(iTag, info) {
+    const command = new ChangeInfoCommand(iTag, info);
+    command.execute();
+
+    // Nếu cần hỗ trợ việc undo, có thể lưu trữ các command đã thực hiện và gọi undo khi cần
 }
 
 
